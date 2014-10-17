@@ -19,7 +19,7 @@ find_package(catkin COMPONENTS
         ${MSG_DEPS}
         REQUIRED)
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 find_package(PkgConfig)
