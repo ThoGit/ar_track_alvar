@@ -1,18 +1,15 @@
 <launch>
-	<arg name="marker_size" default="2.92" />
+	<arg name="marker_size" default="2.90" />
 	<arg name="max_new_marker_error" default="0.08" />
 	<arg name="max_track_error" default="0.2" />
 
   <arg name="use_depth" default="true" />
 
   <arg if="$(arg use_depth)" name="cam_image_topic" default="/kinect2_head/points" />
-	<arg unless="$(arg use_depth)" name="cam_image_topic" default="/kinect2_head/rgb_rect/image" />
-	<arg name="cam_info_topic" default="/kinect2_head/rgb_rect/camera_info" />
+	<arg unless="$(arg use_depth)" name="cam_image_topic" default="/kinect2_head/mono_rect/image" />
+	<arg name="cam_info_topic" default="/kinect2_head/mono_rect/camera_info" />
 	<arg name="output_frame" default="/map" />
 
-<!--
-  <node pkg="tf" type="static_transform_publisher" name="map_to_cam_broadcaster" args="1 0 0 0 0 0 1 map camera_link 100" />
--->
   <node pkg="tf" type="static_transform_publisher" name="map_to_cam_broadcaster" args="1 0 0 0 0 0 1 map  head_mount_kinect2_rgb_optical_frame 100" />
 
   <node if="$(arg use_depth)" name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkers" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
