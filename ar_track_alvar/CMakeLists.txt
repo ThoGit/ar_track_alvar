@@ -24,7 +24,7 @@ find_package(catkin COMPONENTS
         cmake_modules
         REQUIRED)
 
-find_package(Eigen3 REQUIRED)
+find_package(Eigen REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(TinyXML REQUIRED)
 
@@ -52,7 +52,7 @@ catkin_package(
         dynamic_reconfigure
 )
 
-include_directories(include 
+include_directories(include
                     ${catkin_INCLUDE_DIRS}
                     ${OpenCV_INCLUDE_DIRS}
                     ${TinyXML_INCLUDE_DIRS}
