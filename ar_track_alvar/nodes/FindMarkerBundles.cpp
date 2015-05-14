@@ -511,6 +511,20 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 
 // Given the pose of a marker, builds the appropriate ROS messages for later publishing
 void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_msg, tf::StampedTransform &CamToOutput, visualization_msgs::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker, int confidence){
+  for (size_t i = 0; i < 3; ++i)
+  {
+    if ( !isfinite(p.translation[i]) ||
+         !isfinite(p.quaternion[i]) )
+    {
+      return;
+    }
+  }
+
+  if (!isfinite(p.quaternion[3]))
+  {
+    return;
+  }
+
   double px,py,pz,qx,qy,qz,qw;
 
   px = p.translation[0]/100.0;
