@@ -132,6 +132,10 @@ add_executable(createMarker src/SampleMarkerCreator.cpp)
 target_link_libraries(createMarker ar_track_alvar ${catkin_LIBRARIES})
 add_dependencies(createMarker ${PROJECT_NAME}_gencpp ${GENCPP_DEPS})
 
+add_executable(custom_find_marker_bundles nodes/CustomFindMarkerBundles.cpp)
+target_link_libraries(custom_find_marker_bundles ar_track_alvar kinect_filtering medianFilter ${catkin_LIBRARIES})
+add_dependencies(custom_find_marker_bundles ${PROJECT_NAME}_gencpp ${GENCPP_DEPS})
+
 install(TARGETS ${ALVAR_TARGETS} ${KINECT_FILTERING_TARGETS}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
