@@ -69,7 +69,7 @@ typedef pcl::PointCloud<ARPoint> ARCloud;
 // Result of plane fit: inliers and the plane equation
 struct PlaneFitResult
 {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
+  // EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   PlaneFitResult () : inliers(ARCloud::Ptr(new ARCloud)) {}
   ARCloud::Ptr inliers;
   pcl::ModelCoefficients coeffs;
@@ -80,7 +80,7 @@ ARCloud::Ptr filterCloud (const ARCloud& cloud,
                           const std::vector<cv::Point, Eigen::aligned_allocator<cv::Point> >& pixels);
 
 // Wrapper for PCL plane fitting
-PlaneFitResult fitPlane (ARCloud::ConstPtr cloud);
+void fitPlane(ARCloud::ConstPtr cloud, PlaneFitResult& result);
 
 // Given the coefficients of a plane, and two points p1 and p2, we produce a 
 // quaternion q that sends p2'-p1' to (1,0,0) and n to (0,0,1), where p1' and

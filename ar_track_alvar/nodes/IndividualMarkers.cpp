@@ -186,7 +186,9 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
 
 int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p){
 
-  ata::PlaneFitResult res = ata::fitPlane(selected_points);
+  ata::PlaneFitResult res;
+  ata::fitPlane(selected_points, res);
+
   gm::PoseStamped pose;
   pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
   pose.header.frame_id = cloud.header.frame_id;

@@ -38,13 +38,16 @@
 #include "Marker.h"
 #include "Rotation.h"
 #include "Line.h"
+
 #include <algorithm>
 using std::rotate;
 #include <list>
 #include <vector>
 #include <map>
 #include <cassert>
+
 #include <Eigen/StdVector>
+#include <boost/shared_ptr.hpp>
 
 namespace alvar {
 
@@ -63,7 +66,8 @@ protected:
 	virtual Marker* _track_markers_at(size_t i) = 0;
 	virtual void _swap_marker_tables() = 0;
 
-	Labeling* labeling;
+	typedef boost::shared_ptr<Labeling> LabelingPtr;
+	LabelingPtr labeling;
 
 	std::map<unsigned long, double> map_edge_length;
 	double edge_length;

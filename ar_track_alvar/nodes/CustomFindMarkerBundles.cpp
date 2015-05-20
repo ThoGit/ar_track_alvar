@@ -132,19 +132,19 @@ void getParametersFromArguments(const int argc, char *argv[], MarkerDetectorPara
 /*
  * This class is used to detect AR marker whithin a PointCloud.
  */
-class MarkerDetectorManager
+class MarkerDetectorNode
 {
 public:
   /**
    * Constructor
    * @param parameters detector parameters
    */
-  MarkerDetectorManager(const MarkerDetectorParameters& parameters);
+  MarkerDetectorNode(const MarkerDetectorParameters& parameters);
 
   /**
    * Destructor
    */
-  ~MarkerDetectorManager();
+  ~MarkerDetectorNode();
 
   /**
    * Establish communication with ROS and process inputs.
@@ -188,7 +188,7 @@ private:
   ar_track_alvar_msgs::AlvarMarkers alvar_markers_msg_;
 };
 
-MarkerDetectorManager::MarkerDetectorManager(const MarkerDetectorParameters& parameters)
+MarkerDetectorNode::MarkerDetectorNode(const MarkerDetectorParameters& parameters)
   : parameters_(parameters)
 {
   marker_detector_.SetMarkerSize(parameters.marker_size);
@@ -217,10 +217,10 @@ MarkerDetectorManager::MarkerDetectorManager(const MarkerDetectorParameters& par
   }
 }
 
-MarkerDetectorManager::~MarkerDetectorManager()
+MarkerDetectorNode::~MarkerDetectorNode()
 {}
 
-void MarkerDetectorManager::run()
+void MarkerDetectorNode::run()
 {
   double process_rate;
 
@@ -241,7 +241,7 @@ void MarkerDetectorManager::run()
 
   // subscribe to topics and set up callbacks
   ROS_INFO ("Subscribing to image topic");
-  point_cloud_subscriber_ = node_handle_.subscribe(parameters_.cam_image_topic, 1, &MarkerDetectorManager::pointCloudCallback, this);
+  point_cloud_subscriber_ = node_handle_.subscribe(parameters_.cam_image_topic, 1, &MarkerDetectorNode::pointCloudCallback, this);
 
   ros::Rate rate(process_rate);
 
@@ -252,7 +252,7 @@ void MarkerDetectorManager::run()
   }
 }
 
-void MarkerDetectorManager::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& p_point_cloud)
+void MarkerDetectorNode::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& p_point_cloud)
 {
   //If we've already gotten the cam info, then go ahead
   if(p_camera_->getCamInfo_)
@@ -260,17 +260,20 @@ void MarkerDetectorManager::pointCloudCallback(const sensor_msgs::PointCloud2Con
     try
     {
       // Convert cloud to PCL
+      pcl::PCLPointCloud2 pcl_cloud2;
+      pcl_conversions::toPCL(*p_point_cloud, pcl_cloud2);
+
       ARCloud cloud;
-      pcl::fromROSMsg(*p_point_cloud, cloud);
+      pcl::fromPCLPointCloud2(pcl_cloud2, cloud);
 
       // Get an OpenCV image from the cloud
-      sensor_msgs::ImagePtr image_msg(new sensor_msgs::Image);
-      pcl::toROSMsg(*p_point_cloud, *image_msg);
-      image_msg->header = p_point_cloud->header;
+      sensor_msgs::ImagePtr p_image_msg(new sensor_msgs::Image);
+      pcl::toROSMsg(*p_point_cloud, *p_image_msg);
+      p_image_msg->header = p_point_cloud->header;
 
       // Convert the image
       ROS_INFO_STREAM("cv_bridge::toCvCopy");
-      p_cv_bridge_image_ = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::BGR8);
+      p_cv_bridge_image_ = cv_bridge::toCvCopy(p_image_msg, sensor_msgs::image_encodings::BGR8);
 
       // Get the estimated pose of the main markers by using all the markers in each bundle
 
@@ -321,7 +324,7 @@ void MarkerDetectorManager::pointCloudCallback(const sensor_msgs::PointCloud2Con
             Pose pose = (*(marker_detector_.markers))[i].pose;
 
             ROS_INFO_STREAM("makeMarkerMsgs 1");
-            makeMarkerMsgs(VISIBLE_MARKER, id, pose, image_msg, cam_wrt_output, viz_marker_msg, marker_msg, 1);
+            makeMarkerMsgs(VISIBLE_MARKER, id, pose, p_image_msg, cam_wrt_output, viz_marker_msg, marker_msg, 1);
             viz_marker_publisher_.publish(viz_marker_msg);
           }
         }
@@ -333,7 +336,7 @@ void MarkerDetectorManager::pointCloudCallback(const sensor_msgs::PointCloud2Con
         if(seen_bundles_[i] > 0)
         {
           ROS_INFO_STREAM("makeMarkerMsgs 2");
-          makeMarkerMsgs(MAIN_MARKER, master_ids_[i], bundle_poses_[i], image_msg, cam_wrt_output, viz_marker_msg, marker_msg, seen_bundles_[i]);
+          makeMarkerMsgs(MAIN_MARKER, master_ids_[i], bundle_poses_[i], p_image_msg, cam_wrt_output, viz_marker_msg, marker_msg, seen_bundles_[i]);
           viz_marker_publisher_.publish(viz_marker_msg);
           alvar_markers_msg_.markers.push_back(marker_msg);
         }
@@ -349,7 +352,7 @@ void MarkerDetectorManager::pointCloudCallback(const sensor_msgs::PointCloud2Con
   }
 }
 
-int MarkerDetectorManager::setMasterCoordinates(MultiMarkerBundle& multi_marker_bundle)
+int MarkerDetectorNode::setMasterCoordinates(MultiMarkerBundle& multi_marker_bundle)
 {
   std::vector<tf::Vector3> rel_corner_coords;
 
@@ -393,7 +396,7 @@ int MarkerDetectorManager::setMasterCoordinates(MultiMarkerBundle& multi_marker_
   return 0;
 }
 
-int MarkerDetectorManager::makeMasterTransform(const CvPoint3D64f& p0, const CvPoint3D64f& p1, const CvPoint3D64f& p2, const CvPoint3D64f& p3, tf::Transform& transform)
+int MarkerDetectorNode::makeMasterTransform(const CvPoint3D64f& p0, const CvPoint3D64f& p1, const CvPoint3D64f& p2, const CvPoint3D64f& p3, tf::Transform& transform)
 {
   const tf::Vector3 q0(p0.x, p0.y, p0.z);
   const tf::Vector3 q1(p1.x, p1.y, p1.z);
@@ -445,13 +448,13 @@ int MarkerDetectorManager::makeMasterTransform(const CvPoint3D64f& p0, const CvP
 
 // Updates the bundlePoses of the multi_marker_bundles by detecting markers and
 // using all markers in a bundle to infer the master tag's position
-void MarkerDetectorManager::getMultiMarkerPoses(IplImage* p_image, ARCloud& cloud)
+void MarkerDetectorNode::getMultiMarkerPoses(IplImage* p_image, ARCloud& cloud)
 {
   visible_masters_.assign(parameters_.n_bundles, false);
   seen_bundles_.assign(parameters_.n_bundles, 0);
 
   //Detect and track the markers
-  bool detected = marker_detector_.Detect(p_image, &(*p_camera_), true, false, parameters_.max_new_marker_error, parameters_.max_track_error, CVSEQ, true);
+  bool detected = marker_detector_.Detect(p_image, p_camera_.get(), true, false, parameters_.max_new_marker_error, parameters_.max_track_error, CVSEQ, true);
   if (detected)
   {
     for (size_t i = 0; i < marker_detector_.markers->size(); i++)
@@ -533,7 +536,6 @@ void MarkerDetectorManager::getMultiMarkerPoses(IplImage* p_image, ARCloud& clou
 
       //Use the kinect data to find a plane and pose for the marker
       int result = planeFitPoseImprovement(i, p_marker->ros_corners_3D, selected_points, cloud, p_marker->pose);
-
       //If the plane fit fails...
       if(result < 0)
       {
@@ -600,12 +602,22 @@ void MarkerDetectorManager::getMultiMarkerPoses(IplImage* p_image, ARCloud& clou
   }
 }
 
-int MarkerDetectorManager::planeFitPoseImprovement(int id, const ARCloud& corners_cloud, ARCloud::Ptr p_selected_points, const ARCloud& cloud, Pose& marker_pose)
+int MarkerDetectorNode::planeFitPoseImprovement(int id, const ARCloud& corners_cloud, ARCloud::Ptr p_selected_points, const ARCloud& cloud, Pose& marker_pose)
 {
-  ata::PlaneFitResult plane_fit_result = ata::fitPlane(p_selected_points);
+  if (corners_cloud.size() < 4)
+  {
+    return -1;
+  }
+
+  ata::PlaneFitResult plane_fit_result;
+  ata::fitPlane(p_selected_points, plane_fit_result);
+  if (plane_fit_result.inliers->size() <= 0)
+  {
+    return -1;
+  }
 
   gm::PoseStamped pose_stamped;
-  pose_stamped.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
+  pose_stamped.header.stamp = pcl_conversions::fromPCL(cloud.header.stamp);
   pose_stamped.header.frame_id = cloud.header.frame_id;
   pose_stamped.pose.position = ata::centroid(*(plane_fit_result.inliers));
 
@@ -665,11 +677,11 @@ int MarkerDetectorManager::planeFitPoseImprovement(int id, const ARCloud& corner
 
   int result;
   result = ata::extractOrientation(plane_fit_result.coeffs, corners_cloud[i1], corners_cloud[i2], corners_cloud[i3], corners_cloud[i4], pose_stamped.pose.orientation);
-  if(result < 0) return -1;
+  if (result < 0) return -1;
 
   tf::Matrix3x3 mat;
   result = ata::extractFrame(plane_fit_result.coeffs, corners_cloud[i1], corners_cloud[i2], corners_cloud[i3], corners_cloud[i4], mat);
-  if(result < 0) return -1;
+  if (result < 0) return -1;
 
   drawArrow(pose_stamped.pose.position, mat, cloud.header.frame_id, 1, id);
 
@@ -686,7 +698,7 @@ int MarkerDetectorManager::planeFitPoseImprovement(int id, const ARCloud& corner
 
 // Infer the master tag corner positons from the other observed tags
 // Also does some of the bookkeeping for tracking that MultiMarker::_GetPose does
-int MarkerDetectorManager::inferCorners(const ARCloud& cloud, MultiMarkerBundle& multi_marker_bundle, ARCloud& bundle_corners)
+int MarkerDetectorNode::inferCorners(const ARCloud& cloud, MultiMarkerBundle& multi_marker_bundle, ARCloud& bundle_corners)
 {
   bundle_corners.resize(4);
   for (int i = 0; i < 4; i++)
@@ -770,7 +782,7 @@ int MarkerDetectorManager::inferCorners(const ARCloud& cloud, MultiMarkerBundle&
 }
 
 // Given the pose of a marker, builds the appropriate ROS messages for later publishing
-bool MarkerDetectorManager::makeMarkerMsgs(int type, int id, Pose& pose, sensor_msgs::ImageConstPtr p_image_msg, tf::StampedTransform& cam_wrt_output, visualization_msgs::Marker& viz_marker_msg, ar_track_alvar_msgs::AlvarMarker& marker_msg, int confidence)
+bool MarkerDetectorNode::makeMarkerMsgs(int type, int id, Pose& pose, sensor_msgs::ImageConstPtr p_image_msg, tf::StampedTransform& cam_wrt_output, visualization_msgs::Marker& viz_marker_msg, ar_track_alvar_msgs::AlvarMarker& marker_msg, int confidence)
 {
   for (size_t i = 0; i < 3; ++i)
   {
@@ -872,7 +884,7 @@ bool MarkerDetectorManager::makeMarkerMsgs(int type, int id, Pose& pose, sensor_
 }
 
 // Debugging utility function
-void MarkerDetectorManager::draw3dPoints(ARCloud::Ptr p_cloud, const string& frame, int color, int id, double scale)
+void MarkerDetectorNode::draw3dPoints(ARCloud::Ptr p_cloud, const string& frame, int color, int id, double scale)
 {
   visualization_msgs::Marker viz_marker;
   viz_marker.header.frame_id = frame;
@@ -920,7 +932,7 @@ void MarkerDetectorManager::draw3dPoints(ARCloud::Ptr p_cloud, const string& fra
   viz_marker_debug_publisher_.publish (viz_marker);
 }
 
-void MarkerDetectorManager::drawArrow(gm::Point& arrow_origin, const tf::Matrix3x3& tf_matrix, const string& frame, int color, int id)
+void MarkerDetectorNode::drawArrow(gm::Point& arrow_origin, const tf::Matrix3x3& tf_matrix, const string& frame, int color, int id)
 {
   visualization_msgs::Marker viz_marker_msg;
   viz_marker_msg.header.frame_id = frame;
@@ -992,7 +1004,7 @@ int main(int argc, char *argv[])
     MarkerDetectorParameters parameters;
     getParametersFromArguments(argc, argv, parameters);
 
-    MarkerDetectorManager marker_detector_manager(parameters);
+    MarkerDetectorNode marker_detector_manager(parameters);
     marker_detector_manager.run();
   }
   catch (std::exception& exception)

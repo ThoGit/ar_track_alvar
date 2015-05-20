@@ -108,7 +108,9 @@ int main (int argc, char** argv)
   ROS_INFO("Points are (%.4f, %.4f, %.4f) and (%.4f, %.4f, %.4f)",
            p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
 
-  a::PlaneFitResult res = a::fitPlane(cloud);
+  a::PlaneFitResult res;
+  a::fitPlane(cloud, res);
+
   ROS_INFO("Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
            res.coeffs.values[0], res.coeffs.values[1], res.coeffs.values[2],
            res.coeffs.values[3]);

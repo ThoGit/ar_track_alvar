@@ -101,7 +101,9 @@ int main (int argc, char** argv)
   p3.y = 24;
   p3.z = 88;
 
-  a::PlaneFitResult res = a::fitPlane(cloud);
+  a::PlaneFitResult res;
+  a::fitPlane(cloud, res);
+
   ROS_INFO("Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
            res.coeffs.values[0], res.coeffs.values[1], res.coeffs.values[2],
            res.coeffs.values[3]);
