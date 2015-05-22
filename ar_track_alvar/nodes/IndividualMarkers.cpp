@@ -83,6 +83,7 @@ std::string cam_info_topic;
 std::string output_frame;
 
 
+
 //Debugging utility function
 void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double rad)
 {
