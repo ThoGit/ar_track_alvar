@@ -21,12 +21,25 @@ find_package(catkin COMPONENTS
         message_generation
         ${MSG_DEPS}
         dynamic_reconfigure
+        eigen_conversions
         cmake_modules
         REQUIRED)
 
 find_package(Eigen REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(TinyXML REQUIRED)
+
+find_library(yaml-cpp_LIBRARY
+  NAMES yaml-cpp
+  PATHS /usr/lib/
+)
+
+find_package(PkgConfig)
+
+pkg_check_modules(NEW_YAMLCPP yaml-cpp>=0.5)
+if(NEW_YAMLCPP_FOUND)
+  add_definitions(-DAR_TRACK_ALVAR_HAVE_YAMLCPP_05)
+endif()
 
 # dynamic reconfigure support
 generate_dynamic_reconfigure_options(cfg/Params.cfg)
@@ -49,6 +62,7 @@ catkin_package(
         cv_bridge
         pcl_ros
         pcl_conversions
+        eigen_conversions
         dynamic_reconfigure
 )
 
@@ -135,11 +149,23 @@ add_dependencies(createMarker ${PROJECT_NAME}_gencpp ${GENCPP_DEPS})
 include_directories(nodes)
 
 add_executable(image_marker_detector nodes/image_marker_detector.cpp)
-target_link_libraries(image_marker_detector ar_track_alvar kinect_filtering medianFilter ${catkin_LIBRARIES})
+target_link_libraries(image_marker_detector
+  ar_track_alvar
+  kinect_filtering
+  medianFilter
+  ${catkin_LIBRARIES}
+  ${yaml-cpp_LIBRARY}
+)
 add_dependencies(image_marker_detector ${PROJECT_NAME}_gencpp ${GENCPP_DEPS})
 
 add_executable(cloud_marker_detector nodes/cloud_marker_detector.cpp)
-target_link_libraries(cloud_marker_detector ar_track_alvar kinect_filtering medianFilter ${catkin_LIBRARIES})
+target_link_libraries(cloud_marker_detector
+  ar_track_alvar
+  kinect_filtering
+  medianFilter
+  ${catkin_LIBRARIES}
+  ${yaml-cpp_LIBRARY}
+)
 add_dependencies(cloud_marker_detector ${PROJECT_NAME}_gencpp ${GENCPP_DEPS})
 
 install(TARGETS ${ALVAR_TARGETS} ${KINECT_FILTERING_TARGETS}
